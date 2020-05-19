@@ -1,0 +1,107 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>Chanrad's Trivia</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.1.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css">
+    <link rel="stylesheet" href="dist/styles.css">
+</head>
+
+<body style="display:none">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/blueimp-JavaScript-Templates/3.14.0/js/tmpl.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.0/js/bootstrap.min.js"></script>
+    <script src="./dist/noSleep.min.js"></script>
+    <script src="./dist/scripts.js"></script>
+
+    <div class="container">
+        <div class="host-only host-controls mb-2 mx-auto">
+            <button id="reveal-round" class="btn btn-success host-only">Reveal&nbsp;<i class="far fa-eye"></i></button>
+            <button id="reset-round" class="btn btn-sm btn-secondary host-only"><i class="fas fa-redo"></i></button>
+            <button id="prev-round" class="btn btn-sm btn-secondary host-only"><i class="fas fa-arrow-left"></i></button>
+            <button id="next-round" class="btn btn-primary host-only"><i class="fas fa-arrow-right"></i></button>
+        </div>
+        <div class="card-deck">
+            <div class="card scoreboard">
+                <div class="card-header" id="round-title"></div>
+                <div class="card-body pt-0">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Team</th>
+                                <th scope="col">Score</th>
+                                <th scope="col">Answer</th>
+                                <th scope="col">Point</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scoreboard-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="card-deck" id="team-cards"></div>
+    </div>
+    <div id="answer-submission" class="text-center">
+        <input type="text" id="answer-text" class="form-control mb-3" id="" placeholder="Type Answer Here" maxlength="50">
+        <div class="btn-group mb-3" id="points-btns"></div>
+        <button type="button" disabled id="submit-answer" class="d-block btn btn-primary mb-2 mx-auto">Submit</button>
+    </div>
+
+    <script type="text/x-tmpl" id="points-tmpl">
+        {% for (var i=0; i
+        <o.length; i++) { %} <button type="button" class="btn btn-secondary {%=o[i].class%}" data-val="{%=o[i].value%}">{%=o[i].value%}</button>
+            {% } %}
+    </script>
+    <script type="text/x-tmpl" id="round-title-tmpl">
+        <h5 class="mb-0">{%=o.roundTitle%}</h5>
+    </script>
+    <script type="text/x-tmpl" id="scoreboard-tmpl">
+        {% for (var i=0; i
+        <o.teams.length; i++) { %} <tr data-team='{%=o.teams[i].name%}' data-correct="{%=o.teams[i].history[o.questionIndex].correct%}" data-submitted="{%=o.teams[i].history[o.questionIndex].submittedAnswer !== undefined%}">
+            <th scope="row" class="team-name">{%=o.teams[i].name%}</th>
+            <td>{%=o.teams[i].score%}</td>
+            <td class="answer-cell {%=o.teams[i].history[o.questionIndex].answer === undefined ? 'lock' : ''%}">
+                <div class="{%=o.teams[i].history[o.questionIndex].statusClass%}">{%=o.teams[i].history[o.questionIndex].answerLabel%}</div>
+            </td>
+            <td class="point-cell">
+                <div>{%=o.teams[i].history[o.questionIndex].point%}</div>
+            </td>
+            </tr>
+            {% } %}
+    </script>
+    <script type="text/x-tmpl" id="team-card-tmpl">
+        {% for (var i=0; i
+        <o.teams.length; i++) { %} <div class="card">
+            <div class="card-header">
+                <h5>{%=o.teams[i].name%}</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th scope="col">Round</th>
+                            <th scope="col">Answer</th>
+                            <th scope="col">Point</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for (var j=0; j
+                        <o.teams[i].history.length; j++) { %} <tr data-correct="{%=o.teams[i].history[j].correct%}">
+                            <th scope="row">{%=o.teams[i].history[j].title%}</th>
+                            <td>{%=o.teams[i].history[j].answer%}</td>
+                            <td>{%=o.teams[i].history[j].point%}</td>
+                            </tr>
+                            {% } %}
+                    </tbody>
+                </table>
+            </div>
+            </div>
+            {% } %}
+    </script>
+</body>
+
+</html>

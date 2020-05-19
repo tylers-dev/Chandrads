@@ -1,0 +1,42 @@
+Virtual Trivia
+
+Requirements:
+Global room video/audio streams
+Global room chat stream
+Party groups w/password
+Private answer submission to Host
+
+Host Controls:
+Host toggles audio between public and private
+Host reveals submitted answer
+Host awards points
+Host controls audio played globally for music
+
+Interface:
+Host shared screen in center of screen (contains questions)
+Tiled view of all video feeds around center
+Each video feed shows: team name, score, points used, status (submitted, thinking, cheating)
+
+CONTROLLER ONLY
+
+Host:
+virtualtrivia.com/game1/?host
+-asked to enter host pin
+-shown all teams, with url, and pin
+-can add team, remove team, edit team names
+-has button to reveal answers
+-has button to go to next round
+
+Particpant: 
+virtualtrivia.com/game1/?team-name
+-asked to enter pin given from host (pin stored in local storage)
+
+Interface:
+-all users share same interface
+-each team is a column
+-each row is a round
+-bottom bar for submitting answer and points
+-cheat status above each team name
+
+Rules:
+-only allow 1 user session per url

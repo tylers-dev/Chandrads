@@ -1,0 +1,111 @@
+body {
+    padding-top: 20px;
+    padding-bottom: 200px;
+    user-select: none;
+}
+
+.container {
+    text-align: center;
+}
+
+body:not(.host) .host-only {
+    display: none !important;
+}
+
+.host-controls {
+    display: flex;
+    max-width: 400px;
+    &>button {
+        margin-left: 5px;
+        margin-right: 5px;
+    }
+    #reveal-round {
+        flex: 1 1 auto;
+    }
+}
+
+#scoreboard-body {
+    .answer-cell,
+    .point-cell {
+        cursor: pointer;
+    }
+    .lock {
+        pointer-events: none;
+    }
+    tr[data-correct='true'] {
+        background-color: rgba(#fcba03, .6) !important;
+    }
+    tr:hover {
+        background-color: rgba(0, 0, 0, .03);
+    }
+    .team-name {
+        font-style: italic;
+        body.host & {
+            cursor: not-allowed;
+        }
+    }
+}
+
+#points-btns {
+    .btn {
+        margin: 0 3px;
+        border-radius: 6px;
+        &.active {
+            background-color: #007bff;
+        }
+        &.disabled {
+            opacity: .3;
+            pointer-events: none;
+        }
+    }
+}
+
+#answer-submission {
+    body:not(.player) & {
+        display: none;
+    }
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    padding: 1rem;
+    background-color: #F5F5F5;
+    border-top: 1px solid #000;
+    .btn-group .active {
+        background-color: #007bff !important;
+    }
+}
+
+#team-cards {
+    .card-body tr {
+        &[data-correct='true'] {
+            background-color: rgba(#fcba03, .6) !important;
+        }
+        &[data-correct='false'] td:not(.row) {
+            text-decoration: line-through;
+        }
+    }
+}
+
+.table td,
+.table th {
+    vertical-align: middle !important;
+}
+
+td {
+    max-width: 42vw;
+}
+
+.card-deck {
+    margin: 0 -15px;
+    justify-content: space-around;
+    text-align: center;
+    line-height: 1.2;
+    .card {
+        margin: 0 0 1rem;
+        background-color: #F5F5F5;
+    }
+    .card-body {
+        padding-left: .25rem;
+        padding-right: .25rem;
+    }
+}

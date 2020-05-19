@@ -1,0 +1,4 @@
+only allow one host
+how to not keep key in Trivia game data that goes to each client
+keep long answers from breaking
+seperate important game data out of the main Trivia object
