@@ -2,10 +2,22 @@ body {
     padding-top: 20px;
     padding-bottom: 200px;
     user-select: none;
+    &.host,
+    &.spectator,
+    &.player {
+        .container {
+            display: block;
+        }
+        .waiting-room {
+            display: none;
+        }
+    }
 }
 
 .container {
+    display: none;
     text-align: center;
+    position: relative;
 }
 
 body:not(.host) .host-only {
@@ -108,4 +120,21 @@ td {
         padding-left: .25rem;
         padding-right: .25rem;
     }
+}
+
+.notifyjs-teamAccept-base {
+    padding: 1rem;
+    background: #ccc;
+    border-radius: 10px;
+    text-align: center;
+    font-weight: bold;
+    .key {
+        position: absolute;
+        pointer-events: none;
+    }
+}
+
+#restart-game {
+    position: absolute;
+    left: 0;
 }

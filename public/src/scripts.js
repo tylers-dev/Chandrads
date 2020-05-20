@@ -13,8 +13,7 @@ $(function() {
             console.log("Socket Connected");
             //Look for trivia key to identify with server
             var key = localStorage.getItem("triviaKey") || undefined;
-            console.log(key)
-                //If client has a key, pass the key for identification
+            //If client has a key, pass the key for identification
             var params = { key: key };
             if (!key) {
                 //No key means client needs to identify itself and provide information
@@ -27,8 +26,11 @@ $(function() {
                     var teamName = prompt("Please enter team name", "");
                     if (teamName != null) params.teamName = teamName;
                 }
+                //Spectating
+                if (!params.hostPin && !params.teamName) params.spectating = true;
             }
             ServerSend("identify", params);
+            document.body.style = "";
         };
 
         // Server Responses////////////////////////////////////////////////////////////////////////////
@@ -49,13 +51,27 @@ $(function() {
                 switch (data.clientType) {
                     case "host":
                         isHost = true;
-                        $("body").addClass("host");
-                        document.body.style = "";
+                        $("body").removeClass().addClass("host");
+                        setupHostControls();
                         break;
                     case "player":
-                        $("body").addClass("player");
-                        document.body.style = "";
+                        $("body").removeClass().addClass("player");
                         break;
+                    case "spectator":
+                        $("body").removeClass().addClass("spectator");
+                        break;
+                }
+            },
+            hostTeamAccept: function(data) {
+                if (data.teamName && data.key) {
+                    $.notify({
+                        team: data.teamName,
+                        key: data.key
+                    }, {
+                        style: 'teamAccept',
+                        globalPosition: "bottom left",
+                        autoHide: false
+                    });
                 }
             },
             resetKey: function(data) {
@@ -164,16 +180,19 @@ $(function() {
                     } else {
                         alert(data.msg);
                     }
+                    if (data.restart) window.location.reload();
                 }
             }
         }
 
+        //Used to send action commands to the server
         function ServerSend(action, data) {
             data = data || {};
             data.action = action;
             socket.send(JSON.stringify(data));
         }
 
+        //Player answer submission button
         $("#submit-answer").on("click", function() {
             var $answerText = $("#answer-text");
             var answerVal = $answerText.val();
@@ -187,35 +206,11 @@ $(function() {
             }
         })
 
-        //Host controls
-        $("#reveal-round").on("click", function() {
-            var teamsStillThinking = $("#scoreboard-body [data-submitted='false']").length > 0;
-            var revealReady = true;
-            if (teamsStillThinking) {
-                revealReady = confirm("Are you sure you want to reveal round? There are still teams thinking.");
-            }
-            if (revealReady) {
-                ServerSend("hostReveal");
-            }
-        })
-        $("#reset-round").on("click", function() {
-            var resetRound = confirm("Are you sure you want to reset round?");
-            if (resetRound) {
-                ServerSend("hostResetRound");
-            }
-        })
-        $("#next-round").on("click", function() {
-            ServerSend("hostNextRound");
-        })
-        $("#prev-round").on("click", function() {
-            ServerSend("hostPrevRound");
-        })
-
         //Cheat detection
-        $(window).on("focus", function() {
+        window.addEventListener("focus", function() {
             ServerSend("cheatDetection", { cheat: false });
         })
-        $(window).on("blur", function() {
+        window.addEventListener("blur", function() {
             ServerSend("cheatDetection", { cheat: true });
         })
 
@@ -225,5 +220,59 @@ $(function() {
             document.removeEventListener('click', enableNoSleep, false);
             noSleep.enable();
         }, false);
+
+        //Host controls
+        function setupHostControls() {
+            $("#reveal-round").on("click", function() {
+                var teamsStillThinking = $("#scoreboard-body [data-submitted='false']").length > 0;
+                var revealReady = true;
+                if (teamsStillThinking) {
+                    revealReady = confirm("Are you sure you want to reveal round? There are still teams thinking.");
+                }
+                if (revealReady) {
+                    ServerSend("hostReveal");
+                }
+            });
+            $("#restart-game").on("click", function() {
+                var restartGame = confirm("Are you sure you want to restart the game?");
+                if (restartGame) {
+                    ServerSend("hostRestartGame");
+                }
+            });
+            $("#reset-round").on("click", function() {
+                var resetRound = confirm("Are you sure you want to reset round?");
+                if (resetRound) {
+                    ServerSend("hostResetRound");
+                }
+            });
+            $("#next-round").on("click", function() {
+                ServerSend("hostNextRound");
+            });
+            $("#prev-round").on("click", function() {
+                ServerSend("hostPrevRound");
+            });
+            //Host notifications
+            $.notify.addStyle('teamAccept', {
+                html: "<div>" +
+                    "<div class='invisible key' data-notify-text='key'></div>" +
+                    "<h5><span class='badge badge-light' data-notify-text='team'></span></h5>" +
+                    "<p>Do you accept this team?</p>" +
+                    "<div class='d-flex justify-content-between'>" +
+                    "<button class='btn btn-danger btn-sm reject'>Reject</button>" +
+                    "<button class='btn btn-primary btn-sm accept'>Accept</button>" +
+                    "</div>" +
+                    "</div>"
+            });
+            $(document).on('click', '.notifyjs-teamAccept-base .reject', function() {
+                $(this).trigger('notify-hide');
+            });
+            $(document).on('click', '.notifyjs-teamAccept-base .accept', function() {
+                var $base = $(this).parents(".notifyjs-teamAccept-base");
+                var teamName = $base.find(".badge").text();
+                var key = $base.find(".key").text();
+                ServerSend("hostAcceptTeam", { teamName: teamName, key: key });
+                $(this).trigger('notify-hide');
+            });
+        }
     })()
 })

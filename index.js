@@ -8,6 +8,7 @@ const fs = require('fs');
 //Security Pins - limited number of security pins for each created team
 const HostPin = "4381";
 const HostKey = "b4b9ce18-3f96-4962-ad76-0b2790c0cce0";
+let hostWS = null;
 const maxTeams = 6;
 const maxRounds = 6;
 const maxQuestionsPerRound = 3;
@@ -52,12 +53,13 @@ const rounds = (function() {
 })()
 
 //Trivia game data
-var Trivia = {
+var triviaDefaults = {
     questionIndex: 0,
     roundTitle: rounds[0].title,
     roundPoints: points1,
     teams: []
 };
+var Trivia = JSON.parse(JSON.stringify(triviaDefaults));
 //Pull backup saved data
 var backupData = null;
 try {
@@ -114,7 +116,7 @@ const wss = new WebSocket.Server({ port: 4545 });
 wss.on('connection', function connection(ws, req) {
     //console.log(req.connection.remoteAddress)
     //var cookies = cookie.parse(req.headers.cookie || "");
-    ws.socketKey = req.headers['sec-websocket-key'];
+    ws.socketKey = ws.socketKey || req.headers['sec-websocket-key'];
 
     //Client connected
     //ws.on('open', function(event) {});
@@ -145,35 +147,13 @@ wss.on('connection', function connection(ws, req) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 const SAction = {
-    //Identify - used on every new websocket connection to identify client as host or player/////////////////
+    //Identify - used on every new websocket connection to identify client as host or player
     identify: function(data) {
         var ws = data.ws;
         var team = getTeamByKey(data.key);
         var isHost = data.key === HostKey;
-        if (!data.key || (!team && !isHost)) {
-            //Client is new, create a team for them or set as host
-            if (data.hostPin !== undefined) {
-                if (data.hostPin === HostPin) {
-                    ws.host = true;
-                    ClientSend(ws, "identify", { clientType: "host", key: HostKey });
-                    ClientSend(ws, "alert", { msg: "Host Pin Accepted" });
-                } else {
-                    ClientSend(ws, "alert", { msg: "Error: Host Pin Not Accepted" });
-                }
-            } else if (data.teamName) {
-                var team = JSON.parse(JSON.stringify(defaultTeamData));
-                team.key = ws.socketKey;
-                team.name = data.teamName;
-                team.disconnected = false;
-                team.cheating = false;
-                Trivia.teams.push(team);
-                ws.team = team;
-                ClientSend(ws, "identify", { clientType: "player", key: team.key });
-            } else {
-                //Client has key but it doesn't match anything
-                ClientSend(ws, "resetKey", {});
-            }
-        } else if (team) {
+        var spectating = data.spectating;
+        if (team) {
             //Player found
             team.disconnected = false;
             team.cheating = false;
@@ -182,7 +162,42 @@ const SAction = {
         } else if (isHost) {
             //Host found
             ws.host = true;
+            hostWS = ws;
             ClientSend(ws, "identify", { clientType: "host" });
+        } else if (spectating) {
+            //Spectator
+            ClientSend(ws, "identify", { clientType: "spectator" });
+        } else if (!team && !isHost) {
+            //Client is new, create a team for them or set as host
+            if (Trivia.teams.length < maxTeams) {
+                if (data.hostPin !== undefined) {
+                    if (data.hostPin === HostPin) {
+                        ws.host = true;
+                        hostWS = ws;
+                        ClientSend(ws, "identify", { clientType: "host", key: HostKey });
+                        ClientSend(ws, "alert", { msg: "Host Pin Accepted" });
+                    } else {
+                        ClientSend(ws, "alert", { msg: "Error: Host Pin Not Accepted" });
+                    }
+                } else if (data.teamName) {
+                    var teamNameNotAvaliable = Trivia.teams.some(x => x.name === data.teamName);
+                    if (teamNameNotAvaliable) {
+                        ClientSend(ws, "alert", { msg: "Team Name already used. Please select another team name.", restart: true });
+                        return false;
+                    }
+                    if (hostWS) {
+                        //Request host to accept the new team
+                        ClientSend(hostWS, "hostTeamAccept", { teamName: data.teamName, key: ws.socketKey });
+                    } else {
+                        ClientSend(ws, "alert", { msg: "Host is not connected. Please try again when host is ready." });
+                    }
+                } else if (data.key) {
+                    //Client has key but it doesn't match anything
+                    ClientSend(ws, "resetKey", {});
+                }
+            } else {
+                ClientSend(ws, "alert", { msg: "Error: Max Team Limit Has Been Reached" });
+            }
         }
         renderView();
         sendPointsInput(ws);
@@ -237,6 +252,14 @@ const SAction = {
         })
         renderView();
     },
+    //Host Restart Round - resets all data to default, erasing all players, but not the host
+    hostRestartGame: function(data) {
+        Trivia.teams.forEach(function(team) {
+            SAction.hostRemoveTeam({ teamName: team.name });
+        })
+        Trivia = JSON.parse(JSON.stringify(triviaDefaults));
+        renderView();
+    },
     //Host Reset Round - resets all submitted data for that round
     hostResetRound: function(data) {
         Trivia.teams.forEach(function(team) {
@@ -261,7 +284,7 @@ const SAction = {
     },
     //Host Award Points - host gives points to correctly answered teams
     hostAwardPoints: function(data) {
-        var team = getTeam(data.teamName);
+        var team = getTeamByName(data.teamName);
         var history = team.history[parseInt(Trivia.questionIndex)];
         history.correct = data.correct;
         renderView();
@@ -269,7 +292,7 @@ const SAction = {
     //Host Multiply Points - host has option to multiply points (used during the half time round)
     hostMultiplyPoints: function(data) {
         if (Trivia.isHalfTime) {
-            var team = getTeam(data.teamName);
+            var team = getTeamByName(data.teamName);
             var history = team.history[parseInt(Trivia.questionIndex)];
             if (history.point) {
                 history.point += history.submittedPoint;
@@ -280,15 +303,32 @@ const SAction = {
             }
         }
     },
-    //Remove team////////////////////////////////////////////////////////////////////////////////////////
+    //Remove team - removes team from game, erases all their previous answers
     hostRemoveTeam: function(data) {
         Trivia.teams = Trivia.teams.filter(x => x.name !== data.teamName);
         var client = getClientByName(data.teamName);
         if (client) {
             client.team = undefined;
+            client.socketKey = undefined;
             ClientSend(client, "resetKey", {});
         }
         renderView();
+    },
+    //Accept team - team has been accepted by the host, create a team from the teamname
+    hostAcceptTeam: function(data) {
+        if (data.teamName && data.key) {
+            var ws = getClientByKey(data.key);
+            var team = JSON.parse(JSON.stringify(defaultTeamData));
+            team.key = ws.socketKey;
+            team.name = data.teamName;
+            team.disconnected = false;
+            team.cheating = false;
+            Trivia.teams.push(team);
+            ws.team = team;
+            ClientSend(ws, "identify", { clientType: "player", key: team.key });
+            renderView();
+            sendPointsInput(ws);
+        }
     },
     //Cheat Detection - client browsers will update when player has lost focus of screen, loss of focus can be assumed they are looking up the answer
     cheatDetection: function(data) {
@@ -330,7 +370,13 @@ function renderView() {
     wss.clients.forEach(function each(ws) {
         //Strip private data not intended to be shown to all players
         var renderData = JSON.parse(JSON.stringify(Trivia))
-        renderData.teams.forEach(x => delete x.key);
+        renderData.teams.forEach(x => {
+            delete x.key;
+            x.history.forEach(y => {
+                if (y.submittedAnswer !== undefined) y.submittedAnswer = "";
+                if (y.submittedPoint !== undefined) y.submittedPoint = "";
+            });
+        });
         //Send all view data
         ClientSend(ws, "renderView", renderData);
     });
@@ -432,15 +478,19 @@ function roundProgress(p) {
     }
 }
 
-//Get team
-function getTeam(teamName) {
+//Get team by name
+function getTeamByName(teamName) {
     return Trivia.teams.find(x => x.name === teamName);
 }
 //Get team by key
 function getTeamByKey(key) {
     return Trivia.teams.find(x => x.key === key);
 }
-//Get client
+//Get client by name
 function getClientByName(teamName) {
     return Array.from(wss.clients).find(x => (x.team || {}).name === teamName);
+}
+//Get client by key
+function getClientByKey(key) {
+    return Array.from(wss.clients).find(x => x.socketKey === key);
 }
