@@ -1,0 +1,103 @@
+body {
+  padding-top: 20px;
+  padding-bottom: 200px;
+  user-select: none; }
+  body.host .container, body.spectator .container, body.player .container {
+    display: block; }
+  body.host .waiting-room, body.spectator .waiting-room, body.player .waiting-room {
+    display: none; }
+
+.container {
+  display: none;
+  text-align: center;
+  position: relative; }
+
+body:not(.host) .host-only {
+  display: none !important; }
+
+.host-controls {
+  display: flex;
+  max-width: 400px; }
+  .host-controls > button {
+    margin-left: 5px;
+    margin-right: 5px; }
+  .host-controls #reveal-round {
+    flex: 1 1 auto; }
+
+#scoreboard-body .answer-cell,
+#scoreboard-body .point-cell {
+  cursor: pointer; }
+
+#scoreboard-body .lock {
+  pointer-events: none; }
+
+#scoreboard-body tr[data-correct='true'] {
+  background-color: rgba(252, 186, 3, 0.6) !important; }
+
+#scoreboard-body tr:hover {
+  background-color: rgba(0, 0, 0, 0.03); }
+
+#scoreboard-body .team-name {
+  font-style: italic; }
+  body.host #scoreboard-body .team-name {
+    cursor: not-allowed; }
+
+#points-btns .btn {
+  margin: 0 3px;
+  border-radius: 6px; }
+  #points-btns .btn.active {
+    background-color: #007bff; }
+  #points-btns .btn.disabled {
+    opacity: .3;
+    pointer-events: none; }
+
+#answer-submission {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  padding: 1rem;
+  background-color: #F5F5F5;
+  border-top: 1px solid #000; }
+  body:not(.player) #answer-submission {
+    display: none; }
+  #answer-submission .btn-group .active {
+    background-color: #007bff !important; }
+
+#team-cards .card-body tr[data-correct='true'] {
+  background-color: rgba(252, 186, 3, 0.6) !important; }
+
+#team-cards .card-body tr[data-correct='false'] td:not(.row) {
+  text-decoration: line-through; }
+
+.table td,
+.table th {
+  vertical-align: middle !important; }
+
+td {
+  max-width: 42vw; }
+
+.card-deck {
+  margin: 0 -15px;
+  justify-content: space-around;
+  text-align: center;
+  line-height: 1.2; }
+  .card-deck .card {
+    margin: 0 0 1rem;
+    background-color: #F5F5F5; }
+  .card-deck .card-body {
+    padding-left: .25rem;
+    padding-right: .25rem; }
+
+.notifyjs-teamAccept-base {
+  padding: 1rem;
+  background: #ccc;
+  border-radius: 10px;
+  text-align: center;
+  font-weight: bold; }
+  .notifyjs-teamAccept-base .key {
+    position: absolute;
+    pointer-events: none; }
+
+#restart-game {
+  position: absolute;
+  left: 0; }
